@@ -5,17 +5,18 @@ import java.nio.charset.Charset
 import org.asynchttpclient.{AsyncCompletionHandler, DefaultAsyncHttpClient, Response}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-
 import org.json4s._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, write}
+
+import scala.util.Try
 
 /**
   * @author msvens
   * @since 20/09/16
   */
 
-case class JCResponse[T](statusCode: Int, body: Option[T])
+case class JCResponse[T](statusCode: Int, body: Try[T])
 
 class JsonClient(implicit ec: ExecutionContext) {
 
@@ -41,6 +42,15 @@ class JsonClient(implicit ec: ExecutionContext) {
     p.future
   }
 
+  def getRaw(url: String): Future[Response] = {
+    val p = Promise[Response]
+    asyncClient.prepareGet(url).execute(new AsyncCompletionHandler[Unit] {
+      override def onCompleted(response: Response): Unit = p.success(response)
+      override def onThrowable(t: Throwable): Unit = p.failure(t)
+    })
+    p future
+  }
+
   def close: Unit = {
     asyncClient.close()
   }
@@ -55,12 +65,17 @@ class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]]) extends A
     //println(response.getStatusCode)
     val json = response.getResponseBody(Charset.forName("UTF-8"))
     //println(json)
-    p.success(JCResponse(response.getStatusCode,Some(read[T](json))))
+    val tryT: Try[T] = Try{
+      read[T](json)
+    }
+    p.success(JCResponse(response.getStatusCode,tryT))
     response
   }
   override def onThrowable(t: Throwable): Unit = {
     p failure t
   }
+
+
 }
 
 object JsonClient {
