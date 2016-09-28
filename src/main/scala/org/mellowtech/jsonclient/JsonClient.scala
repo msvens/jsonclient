@@ -18,11 +18,10 @@ import scala.util.Try
 
 case class JCResponse[T](statusCode: Int, body: Try[T])
 
-class JsonClient(implicit ec: ExecutionContext) {
+class JsonClient(implicit ec: ExecutionContext, formats: Formats) {
 
   val asyncClient = new DefaultAsyncHttpClient()
 
-  implicit val formats = Serialization.formats(NoTypeHints)
 
   def post[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JCResponse[T]] = {
 
@@ -56,9 +55,8 @@ class JsonClient(implicit ec: ExecutionContext) {
   }
 }
 
-class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]]) extends AsyncCompletionHandler[Response] {
+class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]])(implicit formats: Formats) extends AsyncCompletionHandler[Response] {
 
-  implicit val formats = Serialization.formats(NoTypeHints)
 
   override def onCompleted(response: Response): Response = {
     //println(response.getContentType)
@@ -80,7 +78,7 @@ class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]]) extends A
 
 object JsonClient {
 
-  def apply()(implicit ec: ExecutionContext): JsonClient = {
+  def apply()(implicit ec: ExecutionContext, formats: Formats): JsonClient = {
     new JsonClient
   }
 }

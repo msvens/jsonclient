@@ -12,6 +12,8 @@ object Dependencies {
 
   val json4s = "org.json4s" %% "json4s-native" % json4sVersion
   val json4sext = "org.json4s" %% "json4s-ext" % json4sVersion
+  //val sprayJson = "io.spray" % "spray-json_2.11" % "1.3.2"
+
 
   val jsonDeps = Seq(json4s,json4sext)
 

@@ -8,6 +8,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import org.json4s._
 import org.json4s.native.Serialization
+import org.json4s.native.Serialization.{read, write}
 
 import scala.util.{Failure, Success}
 
@@ -37,21 +38,32 @@ case class ApiResponse(status: String = "SUCCESS", message: Option[String] = Non
 object TestJsonClient extends App{
 
   import scala.concurrent.ExecutionContext.Implicits.global
-  implicit val formats = org.json4s.DefaultFormats
+  implicit val formats = org.json4s.DefaultFormats ++ JavaTimeSerializers.all
+  //implicit val formats = Serialization.formats(NoTypeHints)
+
 
   val jc = JsonClient()
 
-  var resp = jc.get[ApiResponse]("http://localhost:9000/timer")
+  var resp = jc.get[ApiResponse]("http://localhost:9000/timers")
 
-  var res = Await.result(resp, 2 seconds)
+  var res = Await.result(resp, 4 seconds)
 
   res.body match {
-      case Success(a) => println(Serialization.writePretty(a.value.get))
+      case Success(a) => {
+        //println(Serialization.writePretty(a.value.get))
+        //val l = read[Timer](a.value.get)
+        println(a.value.get.extract[List[Timer]])
+      }
       case Failure(e) => {
         println("printing stacktrace "+res.statusCode)
         e.printStackTrace()
       }
   }
+
+  val ser: String = write(AddTimer("hello"))
+  println(read[Timer](ser))
+
+
 
 
   /*val add = AddTimer("a new timer")
