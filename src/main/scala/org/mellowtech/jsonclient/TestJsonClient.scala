@@ -49,14 +49,13 @@ object TestJsonClient extends App{
   var res = Await.result(resp, 4 seconds)
 
   res.body match {
-      case Success(a) => {
+      case Some(a) => {
         //println(Serialization.writePretty(a.value.get))
         //val l = read[Timer](a.value.get)
         println(a.value.get.extract[List[Timer]])
       }
-      case Failure(e) => {
+      case None => {
         println("printing stacktrace "+res.statusCode)
-        e.printStackTrace()
       }
   }
 

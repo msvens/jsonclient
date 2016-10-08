@@ -2,21 +2,23 @@ package org.mellowtech.jsonclient
 
 import java.nio.charset.Charset
 
+import io.netty.handler.codec.http.HttpResponseStatus
+import org.asynchttpclient.util.HttpUtils
 import org.asynchttpclient.{AsyncCompletionHandler, DefaultAsyncHttpClient, Response}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import org.json4s._
-import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, write}
+import org.scalactic.Fail
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * @author msvens
   * @since 20/09/16
   */
 
-case class JCResponse[T](statusCode: Int, body: Try[T])
+case class JCResponse[T](statusCode: Int, body: Option[T])
 
 class JsonClient(implicit ec: ExecutionContext, formats: Formats) {
 
@@ -57,16 +59,29 @@ class JsonClient(implicit ec: ExecutionContext, formats: Formats) {
 
 class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]])(implicit formats: Formats) extends AsyncCompletionHandler[Response] {
 
+  import io.netty.handler.codec.http.HttpHeaderNames._
 
   override def onCompleted(response: Response): Response = {
-    //println(response.getContentType)
-    //println(response.getStatusCode)
-    val json = response.getResponseBody(Charset.forName("UTF-8"))
-    //println(json)
-    val tryT: Try[T] = Try{
-      read[T](json)
+
+    val length = Option(response.getHeaders.get(CONTENT_LENGTH)) match {
+      case Some(c) => c.toInt
+      case None => 0
     }
-    p.success(JCResponse(response.getStatusCode,tryT))
+    val contentType = response.getContentType
+    val charset = Option(HttpUtils.parseCharset(contentType)) match {
+      case Some(c) => c
+      case None => Charset.forName("UTF-8")
+    }
+    println(length+ " "+contentType)
+    if(length > 0 && response.getStatusCode == HttpResponseStatus.OK.code()) {
+      val body = response.getResponseBody(charset)
+      Try(read[T](body)) match {
+        case Success(t) => p.success(JCResponse(response.getStatusCode, Some(t)))
+        case Failure(f) => p failure f
+      }
+    } else {
+      JCResponse(response.getStatusCode, None)
+    }
     response
   }
   override def onThrowable(t: Throwable): Unit = {
