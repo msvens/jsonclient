@@ -19,7 +19,7 @@ object Test {
   implicit val formats = org.json4s.DefaultFormats ++ JavaTimeSerializers.all
   
    val jc = JsonClient()
-   val resp = jc.get[ServerResponse]("http://localhost:9000/timers")
+   val resp = jc.get[ServerResponse]("http://pathToServiceApi")
    var res: JCResponse[ServerResponse] = Await.result(resp, 4 seconds)
    res.body match {
       case Some(sr) => println(sr)
