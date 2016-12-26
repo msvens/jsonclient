@@ -1,3 +1,8 @@
+# Jsonclient #
+
+[![Build Status](https://travis-ci.org/msvens/jsonclient.svg?branch=master)](https://travis-ci.org/msvens/jsonclient)
+
+
 ##Overview
 
 Dead simple Scala wrapper for [AsyncHttpClient](https://github.com/AsyncHttpClient/async-http-client). It is optimized for json usage
