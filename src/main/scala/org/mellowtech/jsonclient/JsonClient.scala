@@ -19,6 +19,8 @@ import scala.util.{Failure, Success, Try}
 
 case class JCResponse[T](statusCode: Int, body: Option[T])
 
+class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, cause)
+
 class JsonClient(implicit ec: ExecutionContext, formats: Formats) {
 
   val asyncClient = new DefaultAsyncHttpClient()
@@ -71,15 +73,17 @@ class DefaultCompletionHandler[T: Manifest](p: Promise[JCResponse[T]])(implicit 
       case Some(c) => c
       case None => Charset.forName("UTF-8")
     }
-    println(length+ " "+contentType)
-    if(length > 0 && response.getStatusCode == HttpResponseStatus.OK.code()) {
-      val body = response.getResponseBody(charset)
+    val body = response.getResponseBody(charset)
+
+    if(length > 2 && response.getStatusCode == HttpResponseStatus.OK.code()) {
       Try(read[T](body)) match {
         case Success(t) => p.success(JCResponse(response.getStatusCode, Some(t)))
-        case Failure(f) => p failure f
+        case Failure(f) => {
+          p failure new JsonClientException("failed to read", f)
+        }
       }
     } else {
-      JCResponse(response.getStatusCode, None)
+      p.success(JCResponse(response.getStatusCode, None))
     }
     response
   }

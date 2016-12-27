@@ -16,6 +16,7 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
 
   val jsonUrl = "http://localhost:9050/json"
   val htmlUrl = "http://localhost:9050/html"
+  val emptyUrl = "http://localhost:9050/empty"
 
   override def beforeAll(): Unit = {
     server = new TestServer
@@ -41,8 +42,27 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
     })
   }
 
+  it should "return an empty body (Optional) when getting an empty json" in {
+    getEmpty.map(jc => {
+      val tj = jc.body
+      assert(tj.isEmpty)
+    })
+  }
+
+  it should "it should fail when trying to parse a non json object" in {
+    recoverToSucceededIf[JsonClientException](getHtml)
+  }
+
   def getJson: Future[JCResponse[TestJson]] = {
     jsonClient.get[TestJson](jsonUrl)
+  }
+
+  def getEmpty: Future[JCResponse[TestJson]] = {
+    jsonClient.get[TestJson](emptyUrl)
+  }
+
+  def getHtml: Future[JCResponse[TestJson]] = {
+    jsonClient.get[TestJson](htmlUrl)
   }
 
 }
