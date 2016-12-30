@@ -3,7 +3,7 @@ import sbt.Keys._
 import sbt._
 
 lazy val buildSettings = Seq(
-  version := "0.3.0",
+  version := "0.3.1",
   organization := "org.mellowtech",
   scalaVersion := "2.12.1",
   publishArtifact in Test := false,

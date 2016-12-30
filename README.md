@@ -45,6 +45,8 @@ object Test {
 
 ##Version History
 
+* 0.3.0 - First production release. Scala 2.12 and testing
+* 0.1.0-SNAPSHOT - initial snapshot release
 
 
 
