@@ -24,6 +24,35 @@ case class JsonResponse[T](status: Int, body: Option[T], raw: Response)
 
 class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, cause)
 
+/**
+  * HttpClient that simplifies json requests and responses by automatically serialize/deserialize
+  * native objects to and from json. JsonClient is fully asynchronous.
+  *
+  * {{{
+  * import org.mellowtech.jsonclient.{JsonClient,JsonResponse}
+  * import scala.concurrent.Await
+  * import scala.concurrent.duration._
+  *
+  * case class ServerResponse(key: String, value: String)
+  *
+  * object Test {
+  *   import scala.concurrent.ExecutionContext.Implicits.global
+  *   implicit val formats = org.json4s.DefaultFormats
+  *   val jc = JsonClient()
+  *   val resp = jc.get[ServerResponse]("http://pathToServiceApi")
+  *   var res = Await.result(resp, 4 seconds)
+  *
+  *   res.body match {
+  *     case Some(sr) => println(sr)
+  *     case None => println(res.statusCode
+  *   }
+  *   jc.close
+  * }
+  * }}}
+  * @param config http client specific config
+  * @param ec execution context for this client
+  * @param formats json formats for parsing
+  */
 class JsonClient(config: AsyncHttpClientConfig)(implicit ec: ExecutionContext, formats: Formats) {
 
 

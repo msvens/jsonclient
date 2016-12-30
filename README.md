@@ -13,7 +13,7 @@ and will automatically convert responses and request to and from json. It uses
 
 ```scala
 
-import org.mellowtech.jsonclient.{JsonClient,JCResponse,JavaTimeSerializers}
+import org.mellowtech.jsonclient.{JsonClient,JsonResponse}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -21,14 +21,14 @@ case class ServerResponse(key: String, value: String)
 
 object Test {
   import scala.concurrent.ExecutionContext.Implicits.global
-  implicit val formats = org.json4s.DefaultFormats ++ JavaTimeSerializers.all
+  implicit val formats = org.json4s.DefaultFormats
   
    val jc = JsonClient()
    val resp = jc.get[ServerResponse]("http://pathToServiceApi")
-   var res: JCResponse[ServerResponse] = Await.result(resp, 4 seconds)
+   var res: JsonResponse[ServerResponse] = Await.result(resp, 4 seconds)
    res.body match {
       case Some(sr) => println(sr)
-      case None => println(res.statusCode)
+      case None => println(res.status)
    }
    jc.close
   
@@ -38,8 +38,8 @@ object Test {
 
 ##Todo
 
-* Better support for non json client requests
-* Proper testing
+* ~~Better support for non json client requests~~
+* ~~Proper testing~~
 * Simpler configuration (scala.config)
 * Chunked responses
 
