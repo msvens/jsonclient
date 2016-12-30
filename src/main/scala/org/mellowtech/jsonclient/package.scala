@@ -6,6 +6,9 @@ package org.mellowtech
   */
 package object jsonclient {
 
-  type JCR[T] = (Int,Option[T])
+  object HttpMethod extends Enumeration {
+    type HttpMethod = Value
+    val Connect, Delete, Get, Head, Options, Patch, Post, Put, Trace = Value
+  }
 
 }
