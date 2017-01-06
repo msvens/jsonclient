@@ -1,7 +1,7 @@
 # Jsonclient #
 
 [![Build Status](https://travis-ci.org/msvens/jsonclient.svg?branch=master)](https://travis-ci.org/msvens/jsonclient)
-
+[![Maven Central](https://img.shields.io/maven-central/v/org.mellowtech/jsonclient_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/org.mellowtech/jsonclient_2.12)
 
 ##Overview
 
