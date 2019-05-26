@@ -3,9 +3,9 @@ import sbt.Keys._
 import sbt._
 
 lazy val buildSettings = Seq(
-  version := "0.3.2-SNAPSHOT",
+  version := "0.4.0-SNAPSHOT",
   organization := "org.mellowtech",
-  scalaVersion := "2.12.1",
+  scalaVersion := "2.12.7",
   publishArtifact in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/site/test-reports")
 )
@@ -18,7 +18,8 @@ lazy val root = (project in file(".")).
     name := "jsonclient",
     libraryDependencies ++= testDeps,
     libraryDependencies ++= jsonDeps,
-    libraryDependencies += asyncHttpClient,
+    libraryDependencies += java8compat,
+    //libraryDependencies += asyncHttpClient,
     publishMavenStyle := true,
     pomIncludeRepository := { _ => false },
     publishTo := {

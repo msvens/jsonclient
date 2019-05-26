@@ -1,7 +1,7 @@
 package org.mellowtech.jsonclient
 
 
-import io.netty.handler.codec.http.HttpResponseStatus
+//import io.netty.handler.codec.http.HttpResponseStatus
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
 
 import scala.concurrent.{Await, Future}
@@ -24,8 +24,11 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   //val notFoundUrl = "http://localhost:"
 
   override def beforeAll(): Unit = {
+    println("here I am")
     server = new TestServer
+    println("here I am")
     jsonClient = JsonClient()
+    println("here I am")
   }
 
   override def afterAll(): Unit = {
@@ -37,7 +40,7 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   behavior of "jsonclient"
 
   it should "return Ok when getting a json object" in {
-    getJson.map(jc => assert(jc.status == HttpResponseStatus.OK.code()))
+    getJson.map(jc => assert(jc.status == 200))
   }
 
   it should "return a TestJson object when getting a json object" in {
@@ -69,14 +72,14 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   }
 
   it should "return the correct response when getting a url" in {
-    jsonClient.httpRequest(htmlUrl, HttpMethod.Get).map(r => {
-      assert(r.getResponseBody == "<h1>Say hello to akka-http</h1>")
+    jsonClient.httpRequest(Methods.GET, htmlUrl).map(r => {
+      assert(r.body() == "<h1>Say hello to akka-http</h1>")
     })
   }
 
   it should "set status code to 500 when server internally fails" in {
     getJsonError.map(jc => {
-      assert(jc.status == HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+      assert(jc.status == 500)
     })
   }
 

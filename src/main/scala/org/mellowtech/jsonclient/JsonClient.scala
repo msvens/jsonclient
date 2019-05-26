@@ -1,18 +1,21 @@
 package org.mellowtech.jsonclient
 
+import java.net.URI
+import java.net.http.HttpClient.{Redirect, Version}
+import java.net.http.HttpRequest.BodyPublisher
 import java.nio.charset.Charset
-
-import org.asynchttpclient.util.HttpUtils
-import org.asynchttpclient._
-import io.netty.handler.codec.http.HttpResponseStatus
+import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+import java.time.Duration
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import org.json4s._
 import org.json4s.native.Serialization.{read, write}
 import org.mellowtech.jsonclient.HttpMethod._
 
+import scala.compat.java8.{FutureConverters, OptionConverters}
 import scala.util.{Failure, Success, Try}
 
+import HttpHeaders._
 /**
   * @author msvens
   * @since 20/09/16
@@ -20,7 +23,7 @@ import scala.util.{Failure, Success, Try}
 
 
 
-case class JsonResponse[T](status: Int, body: Option[T], raw: Response)
+case class JsonResponse[T](status: Int, body: Option[T], raw: HttpResponse[String])
 
 class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, cause)
 
@@ -49,119 +52,108 @@ class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, 
   *   jc.close
   * }
   * }}}
-  * @param config http client specific config
   * @param ec execution context for this client
   * @param formats json formats for parsing
   */
-class JsonClient(config: AsyncHttpClientConfig)(implicit ec: ExecutionContext, formats: Formats) {
+class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
 
 
+  val httpClient =  HttpClient.newBuilder().version(Version.HTTP_1_1)
+    .followRedirects(Redirect.NORMAL)
+    .connectTimeout(Duration.ofSeconds(20)).build()
 
-  val asyncClient = new DefaultAsyncHttpClient(config)
+
+  //val asyncClient = new DefaultAsyncHttpClient(config)
 
   def delete[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None,asyncClient.prepareDelete(url))
+    jsonRequest(None, Methods.DELETE, url)
+    //jsonRequest(None,asyncClient.prepareDelete(url))
 
   def get[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None,asyncClient.prepareGet(url))
+    jsonRequest(None, Methods.GET, url)
 
   def post[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody),asyncClient.preparePost(url))
+    jsonRequest(Some(pBody),Methods.POST, url)
 
   def put[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody), asyncClient.preparePut(url))
-
-  def patch[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody), asyncClient.preparePatch(url))
-
-
-  def jsonRequest[T: Manifest, P <: AnyRef](pBody: Option[P],
-                                                    builder: BoundRequestBuilder): Future[JsonResponse[T]] = {
-    val promise = Promise[JsonResponse[T]]
-    val b = {
-      if(pBody.isDefined) builder.setBody(write[P](pBody.get).getBytes("UTF-8")).setHeader("Content-Type", "application/json")
-      else
-        builder
-    }
-    b.execute(new JsonCompletionHandler[T](promise))
-    promise.future
-  }
-
-  def httpRequest(builder: BoundRequestBuilder): Future[Response] = {
-    val p = Promise[Response]
-    builder.execute(new AsyncCompletionHandler[Unit] {
-      override def onCompleted(response: Response): Unit = p.success(response)
-      override def onThrowable(t: Throwable): Unit = p.failure(new JsonClientException("client failed",t))
-    })
-    p.future
-  }
-
-  def httpRequest(url: String, method: HttpMethod): Future[Response] = httpRequest(requestBuilder(url, method))
-
-  def requestBuilder(url: String, method: HttpMethod): BoundRequestBuilder = method match {
-    case Connect => asyncClient.prepareConnect(url)
-    case Delete => asyncClient.prepareDelete(url)
-    case Get => asyncClient.prepareGet(url)
-    case Head => asyncClient.prepareHead(url)
-    case Options => asyncClient.prepareOptions(url)
-    case Patch => asyncClient.preparePatch(url)
-    case Post => asyncClient.preparePost(url)
-    case Put => asyncClient.preparePut(url)
-    case Trace => asyncClient.prepareTrace(url)
-  }
+    jsonRequest(Some(pBody), Methods.PUT, url)
 
   def getString(url: String): Future[(Int, String)] = {
-    httpRequest(url, HttpMethod.Get).map(r => {
-      val status = r.getStatusCode
-      val charset = JsonClient.charset(r.getContentType)
-      val body = r.getResponseBody(charset)
+    httpRequest(Methods.GET, url).map(r => {
+      val status = r.statusCode()
+      val body = r.body()
       (status, body)
     })
   }
 
+  def jsonRequest[T: Manifest, P <: AnyRef](pBody: Option[P], method: String, uri: String): Future[JsonResponse[T]] = {
+    val b = HttpRequest.newBuilder(new URI(uri))
+    val bp = if(pBody.isDefined){
+      b.setHeader("Content-Type", "application/json")
+      HttpRequest.BodyPublishers.ofByteArray(write[P](pBody.get).getBytes("UTF-8"))
+    } else {
+      HttpRequest.BodyPublishers.noBody()
+    }
+    b.method(method, bp)
+    for {
+      f <- FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString())) recover {
+        case x: Exception => throw new JsonClientException(x.getMessage, x)
+      }
+      r <- toJsonResponse[T](f)
+    } yield r
+  }
+
+  def httpRequest(method: String, url: String): Future[HttpResponse[String]] = {
+    val b = HttpRequest.newBuilder(new URI(url))
+    b.method(method, HttpRequest.BodyPublishers.noBody())
+    FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString()))
+  }
+
   def close(): Unit = {
-    asyncClient.close()
+    ///httpClient.
   }
 
 
 
+  def toJsonResponse[T: Manifest](r: HttpResponse[String]): Future[JsonResponse[T]] = {
 
-}
+    val p: Promise[JsonResponse[T]] = Promise()
 
-class JsonCompletionHandler[T: Manifest](p: Promise[JsonResponse[T]])(implicit formats: Formats) extends AsyncCompletionHandler[Unit] {
-
-  import io.netty.handler.codec.http.HttpHeaderNames._
-
-  override def onCompleted(response: Response): Unit = {
-
-    val length = Option(response.getHeaders.get(CONTENT_LENGTH)) match {
+    val length = OptionConverters.toScala(r.headers().firstValue(CONTENT_LENGTH)) match {
       case Some(c) => c.toInt
       case None => 0
     }
-
-    val contentType: String = response.getContentType
-    val charset = JsonClient.charset(contentType)
-    val status = response.getStatusCode
-
-    if (contentType != "application/json")
+    val status = r.statusCode()
+    val contentType = OptionConverters.toScala(r.headers().firstValue(CONTENT_TYPE))
+    if(contentType.isEmpty || !contentType.get.equalsIgnoreCase("application/json") ){
       p.failure(new JsonClientException(s"wrong content type: $contentType", null))
+    }
     else if (length <= 2 || !JsonClient.canHaveJsonBody(status))
-      p.success(JsonResponse(status, None, response))
-    else Try(read[T](response.getResponseBody(charset))) match {
+      p.success(JsonResponse(status, None, r))
+    else Try(read[T](r.body())) match {
       case Success(t) => {
-        p.success(JsonResponse(status, Some(t),response))
+        p.success(JsonResponse(status, Some(t),r))
       }
       case Failure(f) => {
         p.failure(new JsonClientException("could not parse json", f))
       }
     }
+    p.future
   }
-  override def onThrowable(t: Throwable): Unit = {
-    p failure new JsonClientException("client failed", t)
-  }
+}
 
+object Methods {
+  val POST = "POST"
+  val GET = "GET"
+  val HEAD = "HEAD"
+  val PUT = "PUT"
+  val DELETE = "DELETE"
+  val CONNECT = "CONNECT"
+  val OPTIONS = "OPTIONS"
+  val TRACE = "TRACE"
 
 }
+
 
 object JsonClient {
 
@@ -171,14 +163,16 @@ object JsonClient {
     case _ => false
   }
 
-  def charset(contentType: String): Charset = Option(HttpUtils.parseCharset(contentType)) match {
-    case Some(c) => c
+  def charset(contentType: Option[String]): Charset = contentType match {
+    case Some(c) => Charset.forName(c)
     case None => Charset.forName("UTF-8")
   }
 
   def apply()(implicit ec: ExecutionContext, formats: Formats): JsonClient =
-    new JsonClient(new DefaultAsyncHttpClientConfig.Builder().build)
+    new JsonClient()
 
+  /*
   def apply(config: AsyncHttpClientConfig)(implicit ec: ExecutionContext, formats: Formats): JsonClient =
     new JsonClient(config)
+    */
 }
