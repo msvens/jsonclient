@@ -2,7 +2,6 @@ package org.mellowtech.jsonclient
 
 import java.net.URI
 import java.net.http.HttpClient.{Redirect, Version}
-import java.net.http.HttpRequest.BodyPublisher
 import java.nio.charset.Charset
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.Duration
@@ -10,7 +9,6 @@ import java.time.Duration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import org.json4s._
 import org.json4s.native.Serialization.{read, write}
-import org.mellowtech.jsonclient.HttpMethod._
 
 import scala.compat.java8.{FutureConverters, OptionConverters}
 import scala.util.{Failure, Success, Try}
@@ -58,7 +56,7 @@ class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, 
 class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
 
 
-  val httpClient =  HttpClient.newBuilder().version(Version.HTTP_1_1)
+  val httpClient: HttpClient =  HttpClient.newBuilder().version(Version.HTTP_1_1)
     .followRedirects(Redirect.NORMAL)
     .connectTimeout(Duration.ofSeconds(20)).build()
 
@@ -131,12 +129,9 @@ class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
     else if (length <= 2 || !JsonClient.canHaveJsonBody(status))
       p.success(JsonResponse(status, None, r))
     else Try(read[T](r.body())) match {
-      case Success(t) => {
-        p.success(JsonResponse(status, Some(t),r))
-      }
-      case Failure(f) => {
-        p.failure(new JsonClientException("could not parse json", f))
-      }
+      case Success(t) => p.success(JsonResponse(status, Some(t),r))
+      case Failure(f) => p.failure(new JsonClientException("could not parse json", f))
+
     }
     p.future
   }
@@ -157,8 +152,7 @@ object Methods {
 
 object JsonClient {
 
-  //private def charset(resp: Response) = charset(resp.getContentType)
-  def canHaveJsonBody(status: Int) = status match {
+  def canHaveJsonBody(status: Int): Boolean = status match {
     case 200 | 201 | 202 | 203 | 206  => true
     case _ => false
   }
