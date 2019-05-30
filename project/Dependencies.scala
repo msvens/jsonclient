@@ -3,7 +3,7 @@ import Keys._
 
 object Dependencies {
 
-  val json4sVersion = "3.6.2"
+  val json4sVersion = "3.6.6"
 
   //for testing
   val junit = "junit" % "junit" % "4.12" % "test"

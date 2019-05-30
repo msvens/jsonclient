@@ -5,7 +5,7 @@ import sbt._
 lazy val buildSettings = Seq(
   version := "0.4.0-SNAPSHOT",
   organization := "org.mellowtech",
-  scalaVersion := "2.12.7",
+  scalaVersion := "2.12.8",
   publishArtifact in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/site/test-reports")
 )
@@ -19,14 +19,4 @@ lazy val root = (project in file(".")).
     libraryDependencies ++= testDeps,
     libraryDependencies ++= jsonDeps,
     libraryDependencies += java8compat,
-    //libraryDependencies += asyncHttpClient,
-    publishMavenStyle := true,
-    pomIncludeRepository := { _ => false },
-    publishTo := {
-      val nexus = "https://oss.sonatype.org/"
-      if (isSnapshot.value)
-        Some("snapshots" at nexus + "content/repositories/snapshots")
-      else
-        Some("releases" at nexus + "service/local/staging/deploy/maven2")
-    }
   )
