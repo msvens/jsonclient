@@ -19,7 +19,5 @@ object Dependencies {
 
   val jsonDeps = Seq(json4s,json4sext)
 
-  val asyncHttpClient = "org.asynchttpclient" % "async-http-client" % "2.1.0-alpha1"
-
 
 }
