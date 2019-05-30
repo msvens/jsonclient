@@ -24,11 +24,8 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   //val notFoundUrl = "http://localhost:"
 
   override def beforeAll(): Unit = {
-    println("here I am")
     server = new TestServer
-    println("here I am")
     jsonClient = JsonClient()
-    println("here I am")
   }
 
   override def afterAll(): Unit = {
