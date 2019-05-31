@@ -3,7 +3,8 @@ organizationHomepage := Some(url("http://www.mellowtech.org/"))
 
 scmInfo := Some(
   ScmInfo(
-    url("https://github.com/msvens/jsonclient"),
+    url("https://github.com/msvens/jsonclient.git"),
+    "scm:git:git@github.com:msvens/jsonclient.git",
     "scm:git:git@github.com:msvens/jsonclient.git"
   )
 )
@@ -36,6 +37,7 @@ sonatypeProfileName := "org.mellowtech"
 
 
 // To sync with Maven central, you need to supply the following information:
+/*
 pomExtra in Global := {
   <url>https://github.com/msvens/jsonclient</url>
     <scm>
@@ -58,3 +60,4 @@ pomExtra in Global := {
       </developer>
     </developers>
 }
+*/

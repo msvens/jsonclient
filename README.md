@@ -3,13 +3,15 @@
 [![Build Status](https://travis-ci.org/msvens/jsonclient.svg?branch=master)](https://travis-ci.org/msvens/jsonclient)
 [![Maven Central](https://img.shields.io/maven-central/v/org.mellowtech/jsonclient_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/org.mellowtech/jsonclient_2.12)
 
-##Overview
+## Overview
 
-Dead simple Scala wrapper for [AsyncHttpClient](https://github.com/AsyncHttpClient/async-http-client). It is optimized for json usage
+Dead simple Scala wrapper for [HttpClient](https://docs.oracle.com/en/java/javase/12/docs/api/java.net.http/java/net/http/HttpClient.html). It is optimized for json usage
 and will automatically convert responses and request to and from json. It uses
 [json4s](https://github.com/json4s/json4s) for this.
 
-###Usage
+**Observe:** Previous versions < 0.4.0) used AsyncHttpClient. This version requires java 11 or 12 so consider it experimental
+
+### Usage
 
 ```scala
 
