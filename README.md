@@ -38,15 +38,16 @@ object Test {
 ```
 
 
-##Todo
+## Todo
 
 * ~~Better support for non json client requests~~
 * ~~Proper testing~~
 * Simpler configuration (scala.config)
 * Chunked responses
 
-##Version History
+## Version History
 
+* 0.4.0 - First version using Javas new HttpClient Api
 * 0.3.0 - First production release. Scala 2.12 and testing
 * 0.1.0-SNAPSHOT - initial snapshot release
 
