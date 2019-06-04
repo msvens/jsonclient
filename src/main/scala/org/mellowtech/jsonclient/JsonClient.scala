@@ -1,16 +1,24 @@
 package org.mellowtech.jsonclient
 
-import java.net.URI
-import java.net.http.HttpClient.{Redirect, Version}
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.stream.ActorMaterializer
+
+import scala.concurrent.Future
+//import java.net.URI
+
+import akka.http.scaladsl.unmarshalling.Unmarshal
+//import java.net.http.HttpClient.{Redirect, Version}
 import java.nio.charset.Charset
-import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+//import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.Duration
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import org.json4s._
 import org.json4s.native.Serialization.{read, write}
 
-import scala.compat.java8.{FutureConverters, OptionConverters}
+//import scala.compat.java8.{FutureConverters, OptionConverters}
 import scala.util.{Failure, Success, Try}
 
 import HttpHeaders._
@@ -21,7 +29,7 @@ import HttpHeaders._
 
 
 
-case class JsonResponse[T](status: Int, body: Option[T], raw: HttpResponse[String])
+case class JsonResponse[T](status: Int, body: Option[T])
 
 class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, cause)
 
@@ -50,41 +58,53 @@ class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, 
   *   jc.close
   * }
   * }}}
-  * @param ec execution context for this client
   * @param formats json formats for parsing
   */
-class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
+class JsonClient()(implicit val ec: ExecutionContext,
+                   formats: Formats) {
 
-
+  implicit val as = ActorSystem()
+  implicit val mat = ActorMaterializer()
+  /*
   val httpClient: HttpClient =  HttpClient.newBuilder().version(Version.HTTP_1_1)
     .followRedirects(Redirect.NORMAL)
     .connectTimeout(Duration.ofSeconds(20)).build()
-
+  */
 
   //val asyncClient = new DefaultAsyncHttpClient(config)
 
   def delete[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None, Methods.DELETE, url)
+    jsonRequest(None, HttpMethods.DELETE, url)
     //jsonRequest(None,asyncClient.prepareDelete(url))
 
   def get[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None, Methods.GET, url)
+    jsonRequest(None, HttpMethods.GET, url)
 
   def post[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody),Methods.POST, url)
+    jsonRequest(Some(pBody),HttpMethods.POST, url)
 
   def put[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody), Methods.PUT, url)
+    jsonRequest(Some(pBody), HttpMethods.PUT, url)
 
   def getString(url: String): Future[(Int, String)] = {
-    httpRequest(Methods.GET, url).map(r => {
-      val status = r.statusCode()
-      val body = r.body()
-      (status, body)
-    })
+    val r: Future[(Int, String)] = for {
+      res <- httpRequest(HttpMethods.GET, url)
+      body: String <- Unmarshal(res.entity).to[String]
+
+    } yield (res.status.intValue(), body)
+    r
   }
 
-  def jsonRequest[T: Manifest, P <: AnyRef](pBody: Option[P], method: String, uri: String): Future[JsonResponse[T]] = {
+  def jsonRequest[T: Manifest, P <: AnyRef](pBody: Option[P], method: HttpMethod, uri: String): Future[JsonResponse[T]] = {
+    import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
+    implicit val serialization = native.Serialization
+
+    var req = HttpRequest(method = method, uri = uri)
+    if(pBody.isDefined){
+      req = req.withEntity(HttpEntity(contentType = ContentTypes.`application/json`,
+        write[P](pBody.get).getBytes("UTF-8")))
+    }
+    /*
     val b = HttpRequest.newBuilder(new URI(uri))
     val bp = if(pBody.isDefined){
       b.setHeader("Content-Type", "application/json")
@@ -93,18 +113,32 @@ class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
       HttpRequest.BodyPublishers.noBody()
     }
     b.method(method, bp)
+    */
+    for {
+      r <- Http().singleRequest(req) recover {
+        case x: Exception => throw new JsonClientException(x.getMessage, x)
+      }
+      t <- Unmarshal(r.entity).to[T]
+
+    } yield JsonResponse(r.status.intValue(), Some(t))
+    /*
     for {
       f <- FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString())) recover {
         case x: Exception => throw new JsonClientException(x.getMessage, x)
       }
       r <- toJsonResponse[T](f)
     } yield r
+     */
   }
 
-  def httpRequest(method: String, url: String): Future[HttpResponse[String]] = {
-    val b = HttpRequest.newBuilder(new URI(url))
+  def httpRequest(reqMethod: HttpMethod, url: String): Future[HttpResponse] = {
+    val req = HttpRequest(method = reqMethod, uri = Uri(url))
+    Http().singleRequest(req)
+
+    /*val b = HttpRequest.newBuilder(new URI(url))
     b.method(method, HttpRequest.BodyPublishers.noBody())
     FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString()))
+     */
   }
 
   def close(): Unit = {
@@ -113,6 +147,7 @@ class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
 
 
 
+  /*
   def toJsonResponse[T: Manifest](r: HttpResponse[String]): Future[JsonResponse[T]] = {
 
     val p: Promise[JsonResponse[T]] = Promise()
@@ -135,20 +170,8 @@ class JsonClient()(implicit ec: ExecutionContext, formats: Formats) {
     }
     p.future
   }
+   */
 }
-
-object Methods {
-  val POST = "POST"
-  val GET = "GET"
-  val HEAD = "HEAD"
-  val PUT = "PUT"
-  val DELETE = "DELETE"
-  val CONNECT = "CONNECT"
-  val OPTIONS = "OPTIONS"
-  val TRACE = "TRACE"
-
-}
-
 
 object JsonClient {
 

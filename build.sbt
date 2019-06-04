@@ -3,7 +3,7 @@ import sbt.Keys._
 import sbt._
 
 lazy val buildSettings = Seq(
-  version := "0.4.0",
+  version := "0.5.0",
   organization := "org.mellowtech",
   scalaVersion := "2.12.8",
   publishArtifact in Test := false,
@@ -18,5 +18,5 @@ lazy val root = (project in file(".")).
     name := "jsonclient",
     libraryDependencies ++= testDeps,
     libraryDependencies ++= jsonDeps,
-    libraryDependencies += java8compat,
+    libraryDependencies ++= akkaDeps
   )
