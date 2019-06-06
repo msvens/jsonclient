@@ -3,12 +3,15 @@ package org.mellowtech.jsonclient
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.ActorMaterializer
+import javax.xml.crypto.dsig.spec.ExcC14NParameterSpec
 
 import scala.concurrent.Future
 //import java.net.URI
 
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.marshalling.Marshal
 //import java.net.http.HttpClient.{Redirect, Version}
 import java.nio.charset.Charset
 //import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -28,10 +31,23 @@ import HttpHeaders._
   */
 
 
+sealed trait JsonClientResponse {
+  def status: Int
+}
 
-case class JsonResponse[T](status: Int, body: Option[T])
+case class StringResponse(status: Int, body: String) extends JsonClientResponse
 
-class JsonClientException(msg: String, cause: Throwable) extends Exception(msg, cause)
+case class EmptyResponse(status: Int) extends JsonClientResponse
+
+case class JsonResponse[T](status: Int, body: T) extends JsonClientResponse
+
+//case class RawResponse(status: Int, httpResponse: HttpEntity.Strict) extends JsonClientResponse
+
+//case class RawResponse(status:Int, body: HttpResponse) extends JsonClientResponse
+
+//case class JsonResponse[T](status: Int, body: Option[T])
+
+class JsonClientException(val status: Int,val msg: String, val cause: Throwable) extends Exception(msg, cause)
 
 /**
   * HttpClient that simplifies json requests and responses by automatically serialize/deserialize
@@ -65,6 +81,7 @@ class JsonClient()(implicit val ec: ExecutionContext,
 
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
+  implicit val serialization = native.Serialization
   /*
   val httpClient: HttpClient =  HttpClient.newBuilder().version(Version.HTTP_1_1)
     .followRedirects(Redirect.NORMAL)
@@ -74,103 +91,102 @@ class JsonClient()(implicit val ec: ExecutionContext,
   //val asyncClient = new DefaultAsyncHttpClient(config)
 
   def delete[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None, HttpMethods.DELETE, url)
+    jsonResponse(None, HttpMethods.DELETE, url)
     //jsonRequest(None,asyncClient.prepareDelete(url))
 
   def get[T: Manifest](url: String): Future[JsonResponse[T]] =
-    jsonRequest(None, HttpMethods.GET, url)
+    jsonResponse(None, HttpMethods.GET, url)
 
   def post[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody),HttpMethods.POST, url)
+    jsonResponse(Some(pBody),HttpMethods.POST, url)
 
   def put[T: Manifest, P <: AnyRef](url: String, pBody: P): Future[JsonResponse[T]] =
-    jsonRequest(Some(pBody), HttpMethods.PUT, url)
+    jsonResponse(Some(pBody), HttpMethods.PUT, url)
 
-  def getString(url: String): Future[(Int, String)] = {
-    val r: Future[(Int, String)] = for {
-      res <- httpRequest(HttpMethods.GET, url)
+  def getString(url: String): Future[StringResponse] = for {
+      res: HttpResponse <- call(HttpRequest(method = HttpMethods.GET, uri = Uri(url)))
       body: String <- Unmarshal(res.entity).to[String]
+  } yield StringResponse(res.status.intValue, body)
 
-    } yield (res.status.intValue(), body)
-    r
-  }
+  def empty(method: HttpMethod, uri: String): Future[EmptyResponse] = empty(None, method, uri)
 
-  def jsonRequest[T: Manifest, P <: AnyRef](pBody: Option[P], method: HttpMethod, uri: String): Future[JsonResponse[T]] = {
-    import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-    implicit val serialization = native.Serialization
 
+  def empty[P <: AnyRef](pBody: Option[P], method: HttpMethod, uri: String): Future[EmptyResponse] = {
     var req = HttpRequest(method = method, uri = uri)
     if(pBody.isDefined){
       req = req.withEntity(HttpEntity(contentType = ContentTypes.`application/json`,
         write[P](pBody.get).getBytes("UTF-8")))
     }
-    /*
-    val b = HttpRequest.newBuilder(new URI(uri))
-    val bp = if(pBody.isDefined){
-      b.setHeader("Content-Type", "application/json")
-      HttpRequest.BodyPublishers.ofByteArray(write[P](pBody.get).getBytes("UTF-8"))
-    } else {
-      HttpRequest.BodyPublishers.noBody()
-    }
-    b.method(method, bp)
-    */
-    for {
+    for{
       r <- Http().singleRequest(req) recover {
-        case x: Exception => throw new JsonClientException(x.getMessage, x)
+        case x: Exception => throw new JsonClientException(500, x.getMessage, x)
       }
-      t <- Unmarshal(r.entity).to[T]
-
-    } yield JsonResponse(r.status.intValue(), Some(t))
-    /*
-    for {
-      f <- FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString())) recover {
-        case x: Exception => throw new JsonClientException(x.getMessage, x)
-      }
-      r <- toJsonResponse[T](f)
-    } yield r
-     */
+    } yield {
+      r.discardEntityBytes()
+      EmptyResponse(r.status.intValue)
+    }
   }
 
-  def httpRequest(reqMethod: HttpMethod, url: String): Future[HttpResponse] = {
-    val req = HttpRequest(method = reqMethod, uri = Uri(url))
-    Http().singleRequest(req)
+  def jsonResponse[T: Manifest](method: HttpMethod, uri: String) = {
+    jsonResponse[T, AnyRef](None, method, uri)
+  }
 
-    /*val b = HttpRequest.newBuilder(new URI(url))
-    b.method(method, HttpRequest.BodyPublishers.noBody())
-    FutureConverters.toScala(httpClient.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString()))
-     */
+  def jsonResponse[T: Manifest, P <: AnyRef](pBody: Option[P], method: HttpMethod, uri: String): Future[JsonResponse[T]] = {
+
+    /*var req = HttpRequest(method = method, uri = uri)
+    if(pBody.isDefined){
+      req = req.withEntity(HttpEntity(contentType = ContentTypes.`application/json`,
+        write[P](pBody.get).getBytes("UTF-8")))
+    }*/
+    for {
+      req <- request(pBody, method, uri)
+      r <- call(req)
+      t <- read(r)
+    } yield JsonResponse(r.status.intValue(), t)
+  }
+
+  private def request[P <: AnyRef](pBody: Option[P], method: HttpMethod, uri: String): Future[HttpRequest] = {
+    import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
+
+    if(pBody.isDefined) for {
+      req <- Marshal(pBody.get).to[RequestEntity]
+      hr <- Future.successful(HttpRequest(method = method, uri = uri, entity = req))
+    } yield hr
+    else
+      Future.successful(HttpRequest(method = method, uri = uri))
+  }
+
+  private def read[T: Manifest](res: HttpResponse): Future[T] = {
+    import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
+    //implicit val serialization = native.Serialization
+    Unmarshal(res.entity).to[T] recover {
+      case x: Unmarshaller.UnsupportedContentTypeException => {
+        throw new JsonClientException(res.status.intValue, "Unsupported Content Type: "+res.entity.contentType, x)
+      }
+      case x: MappingException => {
+        throw new JsonClientException(res.status.intValue, "Could not map response", x)
+      }
+      case x: Exception => {
+        throw new JsonClientException(res.status.intValue, res.status.defaultMessage(), x)
+      }
+    }
+  }
+
+  private def call(req: HttpRequest): Future[HttpResponse] = {
+    for {
+      res <- Http().singleRequest(req) recover {
+        case x: Exception => throw new JsonClientException(-1, x.getMessage, x)
+      }
+      _ <- if(res.status.isSuccess())
+        Future.successful(())
+      else
+        Future.failed(new JsonClientException(res.status.intValue(), res.status.defaultMessage(), null))
+    } yield res
   }
 
   def close(): Unit = {
-    ///httpClient.
+    as.terminate
   }
-
-
-
-  /*
-  def toJsonResponse[T: Manifest](r: HttpResponse[String]): Future[JsonResponse[T]] = {
-
-    val p: Promise[JsonResponse[T]] = Promise()
-
-    val length = OptionConverters.toScala(r.headers().firstValue(CONTENT_LENGTH)) match {
-      case Some(c) => c.toInt
-      case None => 0
-    }
-    val status = r.statusCode()
-    val contentType = OptionConverters.toScala(r.headers().firstValue(CONTENT_TYPE))
-    if(contentType.isEmpty || !contentType.get.equalsIgnoreCase("application/json") ){
-      p.failure(new JsonClientException(s"wrong content type: $contentType", null))
-    }
-    else if (length <= 2 || !JsonClient.canHaveJsonBody(status))
-      p.success(JsonResponse(status, None, r))
-    else Try(read[T](r.body())) match {
-      case Success(t) => p.success(JsonResponse(status, Some(t),r))
-      case Failure(f) => p.failure(new JsonClientException("could not parse json", f))
-
-    }
-    p.future
-  }
-   */
 }
 
 object JsonClient {

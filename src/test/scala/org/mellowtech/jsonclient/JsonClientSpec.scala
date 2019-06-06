@@ -44,28 +44,27 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   it should "return a TestJson object when getting a json object" in {
     getJson.map(jc => {
       val tj = jc.body
-      assert(tj.isDefined)
+      assert(tj != null)
     })
   }
 
   it should "return a TestJson with double values when posting an object" in {
     val testObj = TestJson("a", 1)
    postJson(testObj).map(jc => {
-     val tj1 = jc.body.get
+     val tj1 = jc.body
      assert(tj1.m == "aa")
    })
   }
 
   it should "return an empty body (Optional) when getting an empty json" in {
     getEmpty.map(jc => {
-      val tj = jc.body
-      assert(tj.isEmpty)
+      assert(jc.status == 200)
     })
   }
 
   it should "return the correct body as a string when getting a url as text" in {
     jsonClient.getString(htmlUrl).map(ss => {
-      assert(ss._2 == "<h1>Say hello to akka-http</h1>")
+      assert(ss.body == "<h1>Say hello to akka-http</h1>")
     })
   }
 
@@ -79,8 +78,12 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
 
   it should "set status code to 500 when server internally fails" in {
     getJsonError.map(jc => {
-      assert(jc.status == 500)
-    })
+      assert(false)
+    }) recover {
+      case x: JsonClientException => {
+        assert(x.status == 500)
+      }
+    }
   }
 
   it should "fail when trying to parse the wrong json object" in {
@@ -111,8 +114,8 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
     jsonClient.get[TestJson](jsonErrorUrl)
   }
 
-  def getEmpty: Future[JsonResponse[TestJson]] = {
-    jsonClient.get[TestJson](emptyUrl)
+  def getEmpty: Future[EmptyResponse] = {
+    jsonClient.empty(HttpMethods.GET, emptyUrl)
   }
 
   def getHtml: Future[JsonResponse[TestJson]] = {
