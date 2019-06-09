@@ -5,17 +5,20 @@
 
 ## Overview
 
-Dead simple Scala wrapper for [HttpClient](https://docs.oracle.com/en/java/javase/12/docs/api/java.net.http/java/net/http/HttpClient.html). It is optimized for json usage
+Dead simple Scala wrapper for [Akka Http Client API](https://doc.akka.io/docs/akka-http/current/client-side/index.html) that simplifies interacting with
+JSON Based Http APIs. It is optimized for json usage
 and will automatically convert responses and request to and from json. It uses
-[json4s](https://github.com/json4s/json4s) for this.
+[jsoniter](https://github.com/plokhotnyuk/jsoniter-scala) for this. With minimal bolierplate you should be up and running in minutes
 
-**Observe:** Previous versions < 0.4.0) used AsyncHttpClient. This version requires java 11 or 12 so consider it experimental
+**Observe:** Previous versions < 0.5.0) used AsyncHttpClient or Java 11 HttpClient and Json4s. Version 0.5.0+ is based on AkkaHttp and Jsoniter
 
-### Usage
+### 2 Minute Usage Guide
 
 ```scala
 
 import org.mellowtech.jsonclient.{JsonClient,JsonResponse}
+import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.macros._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -23,15 +26,15 @@ case class ServerResponse(key: String, value: String)
 
 object Test {
   import scala.concurrent.ExecutionContext.Implicits.global
-  implicit val formats = org.json4s.DefaultFormats
+  
+  implicit val jsonCodec = JsonCodecMaker.make[ServerResponse](CodecMakerConfig())
   
    val jc = JsonClient()
+   
    val resp = jc.get[ServerResponse]("http://pathToServiceApi")
    var res: JsonResponse[ServerResponse] = Await.result(resp, 4 seconds)
-   res.body match {
-      case Some(sr) => println(sr)
-      case None => println(res.status)
-   }
+   println(res.body)
+   
    jc.close
   
 }
@@ -50,6 +53,14 @@ object Test {
 * 0.4.0 - First version using Javas new HttpClient Api
 * 0.3.0 - First production release. Scala 2.12 and testing
 * 0.1.0-SNAPSHOT - initial snapshot release
+
+##Using JsonClient
+
+##Using JsonClientRequest
+
+##Five Minute Intro to Jsoniter
+
+
 
 
 
