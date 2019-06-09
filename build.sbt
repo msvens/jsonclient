@@ -17,6 +17,6 @@ lazy val root = (project in file(".")).
   settings(
     name := "jsonclient",
     libraryDependencies ++= testDeps,
-    libraryDependencies ++= jsonDeps,
+    //libraryDependencies ++= jsonDeps,
     libraryDependencies ++= akkaDeps
   )

@@ -4,8 +4,8 @@ import Keys._
 object Dependencies {
 
   val json4sVersion = "3.6.4"
-  val akkaHttpVersion = "10.1.7"
-  val akkaVersion = "2.5.20"
+  val akkaHttpVersion = "10.1.8"
+  val akkaVersion = "2.5.23"
 
   //for testing
   val junit = "junit" % "junit" % "4.12" % "test"
@@ -15,7 +15,7 @@ object Dependencies {
 
   val json4s = "org.json4s" %% "json4s-native" % json4sVersion
   val json4sext = "org.json4s" %% "json4s-ext" % json4sVersion
-  val akkaJson4s = "de.heikoseeberger" %% "akka-http-json4s" % "1.25.2"
+  val akkaJsonIter = "de.heikoseeberger" %% "akka-http-jsoniter-scala" % "1.26.0"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
@@ -23,8 +23,8 @@ object Dependencies {
 
   val java8compat = "org.scala-lang.modules" % "scala-java8-compat_2.12" % "0.9.0"
 
-  val jsonDeps = Seq(json4s,json4sext)
-  val akkaDeps = Seq(akkaHttp, akkaStream, akkaJson4s)
+  //val jsonDeps = Seq(json4s,json4sext)
+  val akkaDeps = Seq(akkaHttp, akkaStream, akkaJsonIter)
 
 
 }

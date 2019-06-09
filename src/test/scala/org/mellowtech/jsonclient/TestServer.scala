@@ -10,7 +10,6 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives.{complete, get}
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.http.scaladsl.server.{Directives, Route}
-import org.json4s.native
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,12 +39,16 @@ class TestServer {
 
   def jsonRoutes(implicit m: Materializer): Route = {
     import Directives._
-    import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-    implicit val formats = org.json4s.DefaultFormats
-    implicit val serialization = native.Serialization
+    import de.heikoseeberger.akkahttpjsoniterscala.JsoniterScalaSupport._
+    import com.github.plokhotnyuk.jsoniter_scala.core._
+    import com.github.plokhotnyuk.jsoniter_scala.macros._
+
+    implicit val codec: JsonValueCodec[TestJson] = JsonCodecMaker.make[TestJson](CodecMakerConfig())
+    implicit val wrongCodec: JsonValueCodec[WrongJson] = JsonCodecMaker.make[WrongJson](CodecMakerConfig())
 
     path("json"){
       get{
+
         complete(TestJson("message", 1))
       } ~
       post{
