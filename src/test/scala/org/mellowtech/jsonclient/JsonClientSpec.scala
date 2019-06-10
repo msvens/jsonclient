@@ -1,11 +1,9 @@
 package org.mellowtech.jsonclient
 
 
-//import io.netty.handler.codec.http.HttpResponseStatus
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
-import akka.http.scaladsl.model.{HttpMethods, HttpRequest}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 /**
   * @author msvens
@@ -13,8 +11,8 @@ import scala.concurrent.duration.DurationInt
   */
 class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll {
 
-  var server: TestServer = null
-  var jsonClient: JsonClient = null
+  var server: TestServer = _
+  var jsonClient: JsonClient = _
 
   import com.github.plokhotnyuk.jsoniter_scala.core._
   import com.github.plokhotnyuk.jsoniter_scala.macros._
@@ -36,7 +34,7 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
 
   override def afterAll(): Unit = {
     Await.ready(server.shutdown(), 42.seconds)
-    Await.ready(jsonClient.close, 42.seconds)
+    Await.ready(jsonClient.close(), 42.seconds)
     super.afterAll()
   }
 
@@ -72,14 +70,10 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
     })
   }
 
-  it should "set status code to 500 when server internally fails" in {
-    jsonClient.get[TestJson](jsonErrorUrl).map(jc => {
-      assert(false)
-    }) recover {
-      case x: JsonClientException => {
-        assert(x.status == 500)
-      }
-    }
+  it should "set status code when server internall failes in" in {
+    recoverToExceptionIf[JsonClientException] {
+      jsonClient.get[TestJson](jsonErrorUrl)
+    }.map(jsonClientException => assert(jsonClientException.status == 500))
   }
 
   it should "fail when trying to parse the wrong json object" in {
@@ -89,15 +83,12 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   }
 
   it should "fail when trying to parse a non json object" in {
-    recoverToSucceededIf[JsonClientException]{
-      jsonClient.get[TestJson](htmlUrl)
-    }
+    recoverToSucceededIf[JsonClientException](jsonClient.get[TestJson](htmlUrl))
   }
 
   it should "fail when trying to access an errornous url" in {
-    recoverToSucceededIf[JsonClientException]{
-      jsonClient.get[TestJson]("http://some/url")
-    }
+    recoverToSucceededIf[JsonClientException](jsonClient.get[TestJson]("http://some/url"))
+
   }
 
 }

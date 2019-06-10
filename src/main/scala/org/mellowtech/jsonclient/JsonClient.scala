@@ -61,13 +61,11 @@ class JsonClientException(val status: Int,val msg: String, val cause: Throwable)
   * }
   * }}}
   */
-class JsonClient()(implicit val ec: ExecutionContext) {
+class JsonClient()(implicit val ec: ExecutionContext, as: ActorSystem, mat: ActorMaterializer) {
 
   import de.heikoseeberger.akkahttpjsoniterscala.JsoniterScalaSupport._
   import com.github.plokhotnyuk.jsoniter_scala.core._
 
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
 
   def postRequest(uri: String): HttpRequest = HttpRequest(HttpMethods.POST, uri)
   def getRequest(uri: String): HttpRequest = HttpRequest(HttpMethods.GET, uri)
@@ -158,7 +156,9 @@ object JsonClient {
     case None => Charset.forName("UTF-8")
   }
 
-  def apply()(implicit ec: ExecutionContext): JsonClient =
+
+
+  def apply()(implicit ec: ExecutionContext, as: ActorSystem, mat: ActorMaterializer): JsonClient =
     new JsonClient()
 
 }
