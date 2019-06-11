@@ -1,6 +1,8 @@
 package org.mellowtech.jsonclient
 
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
 
 import scala.concurrent.Await
@@ -19,6 +21,8 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
 
   implicit val codec: JsonValueCodec[TestJson] = JsonCodecMaker.make[TestJson](CodecMakerConfig())
   implicit val wrongCodec: JsonValueCodec[WrongJson] = JsonCodecMaker.make[WrongJson](CodecMakerConfig())
+  implicit val as: ActorSystem = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   val jsonUrl = "http://localhost:9050/json"
   val jsonErrorUrl = "http://localhost:9050/jsonmiss"
@@ -28,13 +32,13 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   //val notFoundUrl = "http://localhost:"
 
   override def beforeAll(): Unit = {
-    server = new TestServer
+    server = new TestServer()
     jsonClient = JsonClient()
   }
 
   override def afterAll(): Unit = {
-    Await.ready(server.shutdown(), 42.seconds)
-    Await.ready(jsonClient.close(), 42.seconds)
+    Await.ready(server.shutdown(), 42 seconds)
+    System.err.println("actor system shutdown")
     super.afterAll()
   }
 
@@ -70,7 +74,7 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
     })
   }
 
-  it should "set status code when server internall failes in" in {
+  it should "set status code when server internally failes in" in {
     recoverToExceptionIf[JsonClientException] {
       jsonClient.get[TestJson](jsonErrorUrl)
     }.map(jsonClientException => assert(jsonClientException.status == 500))
@@ -87,7 +91,9 @@ class JsonClientSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll 
   }
 
   it should "fail when trying to access an errornous url" in {
-    recoverToSucceededIf[JsonClientException](jsonClient.get[TestJson]("http://some/url"))
+    recoverToExceptionIf[JsonClientException]{
+      jsonClient.get[TestJson]("http://some/url")
+    }.map(jsonClientException => assert(jsonClientException.status == -1))
 
   }
 

@@ -7,11 +7,10 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.model.ContentTypes._
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.http.scaladsl.server.Directives.{complete, get}
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.http.scaladsl.server.{Directives, Route}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 case class TestJson(m: String, i: Int)
 case class WrongJson(m: String = "wrong", m1: String = "json")
@@ -20,12 +19,12 @@ case class WrongJson(m: String = "wrong", m1: String = "json")
   * @author msvens
   * @since 2016-12-25
   */
-class TestServer {
+class TestServer()(implicit actorSystem: ActorSystem, materializer: ActorMaterializer) {
 
-  implicit val actorSystem = ActorSystem()
+  //implicit val actorSystem = ActorSystem()
   implicit val executor: ExecutionContext = actorSystem.dispatcher
   implicit val log: LoggingAdapter = Logging(actorSystem, getClass)
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  //implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   val binding: Future[ServerBinding] = {
     Http().bindAndHandle(route, "0.0.0.0", 9050)
@@ -88,7 +87,11 @@ class TestServer {
   }
 
   def shutdown(): Future[Terminated] ={
-    actorSystem.terminate()
+    import scala.concurrent.duration._
+
+    Await.result(binding, 10.seconds)
+      .terminate(hardDeadline = 3.seconds).flatMap(_ => actorSystem.terminate())
+
   }
 
 }

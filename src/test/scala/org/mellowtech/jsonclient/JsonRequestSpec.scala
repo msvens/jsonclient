@@ -14,7 +14,7 @@ import scala.concurrent.{Await, Future}
   */
 class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll {
 
-  var server: TestServer = null
+  var server: TestServer = _
   //var jsonClient: JsonClient = null
   //implicit va as = ActorSystem()
   //implicit val mat
@@ -26,8 +26,9 @@ class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll
   implicit val codec: JsonValueCodec[TestJson] = JsonCodecMaker.make[TestJson](CodecMakerConfig())
   implicit val wrongCodec: JsonValueCodec[WrongJson] = JsonCodecMaker.make[WrongJson](CodecMakerConfig())
 
-  //implicit val as = ActorSystem()
-  //implicit val mat = ActorMaterializer()
+  implicit val as = ActorSystem()
+  implicit val mat = ActorMaterializer()
+
   implicit val jsonClient = JsonClient()
 
   val jsonUrl = "http://localhost:9050/json"
@@ -38,15 +39,13 @@ class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll
   //val notFoundUrl = "http://localhost:"
 
   override def beforeAll(): Unit = {
-    server = new TestServer
+    server = new TestServer()
 
   }
 
   override def afterAll(): Unit = {
-    Await.ready(server.shutdown(), 42.seconds)
-    Await.ready(jsonClient.close(), 42.seconds)
-    //as.terminate()
-    //jsonClient.close
+    Await.ready(server.shutdown(), 42 seconds)
+    System.err.println("server and client shutdown")
     super.afterAll()
   }
 
@@ -79,9 +78,9 @@ class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll
   }
 
   it should "set status code to 500 when server internally fails" in {
-    JsonRequest.get[TestJson](jsonErrorUrl).send().map(response => assert(false)).recover{
-      case x: JsonClientException => assert(x.status == 500)
-    }
+    recoverToExceptionIf[JsonClientException] {
+      JsonRequest.get[TestJson](jsonErrorUrl).send()
+    }.map(jsonClientException => assert(jsonClientException.status == 500))
   }
 
   it should "fail when trying to parse the wrong json object" in {
@@ -96,10 +95,10 @@ class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll
     }
   }
 
-  it should "fail when trying to access an errornous url" in {
-    recoverToSucceededIf[JsonClientException]{
+  it should "set status code to -1 when accessing an errornous url" in {
+    recoverToExceptionIf[JsonClientException]{
       JsonRequest.get[TestJson]("http://some/url").send()
-    }
+    }.map(jsonClientException => assert(jsonClientException.status == -1))
   }
 
 }

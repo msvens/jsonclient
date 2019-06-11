@@ -156,6 +156,11 @@ object JsonClient {
     case None => Charset.forName("UTF-8")
   }
 
+  def withDefaultActorSystem()(implicit ec: ExecutionContext): JsonClient = {
+    implicit val as = ActorSystem()
+    implicit val am = ActorMaterializer()
+    apply()
+  }
 
 
   def apply()(implicit ec: ExecutionContext, as: ActorSystem, mat: ActorMaterializer): JsonClient =
