@@ -45,6 +45,7 @@ class TestServer()(implicit actorSystem: ActorSystem, materializer: ActorMateria
     implicit val codec: JsonValueCodec[TestJson] = JsonCodecMaker.make[TestJson](CodecMakerConfig())
     implicit val wrongCodec: JsonValueCodec[WrongJson] = JsonCodecMaker.make[WrongJson](CodecMakerConfig())
 
+
     path("json"){
       get{
 
