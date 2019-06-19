@@ -18,6 +18,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments){
   }
   val get = new Subcommand("get") {
     val raw = toggle("raw")
+    val kv = props[String]('P')
     val url = trailArg[String](required = true)
   }
   val post = new Subcommand("post") {
@@ -69,6 +70,9 @@ class Tool(jc: JsonClient){
             case true => {
               val s = Await.result(jc.getString(conf.get.url()), 10 seconds)
               Console.println(s)
+            }
+            case false => { //Json Call
+              Console.println("to be implemented")
             }
           }
         }
