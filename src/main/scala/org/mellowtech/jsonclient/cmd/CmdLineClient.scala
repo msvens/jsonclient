@@ -30,7 +30,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments){
 
   addSubcommand(server)
   addSubcommand(get)
-  addSubcommand(server)
+  addSubcommand(post)
   addSubcommand(exit)
 
   override protected def onError(e: Throwable): Unit = e match {
@@ -90,6 +90,7 @@ object Main {
 
   val jsonClient = JsonClient()
   val tool = new Tool(jsonClient)
+
 
   val exitCmd = (c: ScallopConfBase) => {
     System.exit(0)
