@@ -10,11 +10,11 @@ object Dependencies {
 
   //for testing
   val junit = "junit" % "junit" % "4.12" % "test"
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+  val scalatest = "org.scalatest" %% "scalatest" % "3.0.8" % "test"
   val pegdown = "org.pegdown" % "pegdown" % "1.4.2" % "test"
   val testDeps = Seq(junit,scalatest, pegdown) //no ikoseeberger
 
-  val akkaJsonIter = "de.heikoseeberger" %% "akka-http-jsoniter-scala" % "1.26.0"
+  val akkaJsonIter = "de.heikoseeberger" %% "akka-http-jsoniter-scala" % "1.27.0"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion

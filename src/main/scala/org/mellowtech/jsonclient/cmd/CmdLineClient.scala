@@ -68,7 +68,7 @@ class Tool(jc: JsonClient){
         case conf.get => {
           conf.get.raw() match {
             case true => {
-              val s = Await.result(jc.getString(conf.get.url()), 10 seconds)
+              val s = Await.result(jc.getString(conf.get.url()), 10.seconds)
               Console.println(s)
             }
             case false => { //Json Call

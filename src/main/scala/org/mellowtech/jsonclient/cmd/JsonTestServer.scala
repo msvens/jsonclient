@@ -43,9 +43,7 @@ class eJsonTestServer(port: Int = 9060)(implicit actorSystem: ActorSystem, mater
     pathPrefix("json") {
       pathEndOrSingleSlash {
         get {
-          val resp = responses.map(kv => {
-            JsonResponse(kv._1, kv._2)
-          }).toSeq
+          val resp = responses.map[JsonResponse](kv => {JsonResponse(kv._1, kv._2)}).toSeq
           complete(Responses(resp))
         } ~
         post {
@@ -80,7 +78,7 @@ class eJsonTestServer(port: Int = 9060)(implicit actorSystem: ActorSystem, mater
 
   def shutdown(): Future[Http.HttpTerminated] = {
     import scala.concurrent.duration._
-    Await.result(binding, 18 seconds).terminate(hardDeadline = 3 seconds)
+    Await.result(binding, 18.seconds).terminate(hardDeadline = 3.seconds)
     /*Await.result(binding, 10.seconds)
       .terminate(hardDeadline = 3.seconds).flatMap(_ => actorSystem.terminate())*/
   }

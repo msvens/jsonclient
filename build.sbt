@@ -5,7 +5,7 @@ import sbt._
 lazy val buildSettings = Seq(
   version := "0.5.0",
   organization := "org.mellowtech",
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.13.0",
   publishArtifact in Test := false,
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/site/test-reports")
