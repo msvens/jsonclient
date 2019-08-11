@@ -50,15 +50,31 @@ object Test {
 
 ## Version History
 
+* 0.5.1 - Added example CLI and more documentation
+* 0.5.0 - Using Akka Http Client as backend
 * 0.4.0 - First version using Javas new HttpClient Api
 * 0.3.0 - First production release. Scala 2.12 and testing
 * 0.1.0-SNAPSHOT - initial snapshot release
 
-##Using JsonClient
+## Using JsonClient
 
-##Using JsonClientRequest
+## Using JsonClientRequest
 
-##Five Minute Intro to Jsoniter
+## Using The Example CLI
+
+
+
+
+## Two Minute Intro to Jsoniter
+
+JsonClient uses Jsoniter as its Json Parser backend. It has been chosen for its
+
+* ease of use
+* speed
+* out of the box handling of java.time
+
+
+
 
 
 
