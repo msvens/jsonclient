@@ -44,7 +44,7 @@ class JsonRequestSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll
   }
 
   override def afterAll(): Unit = {
-    Await.ready(server.shutdown(), 42 seconds)
+    Await.ready(server.shutdown(), 42.seconds)
     System.err.println("server and client shutdown")
     super.afterAll()
   }
