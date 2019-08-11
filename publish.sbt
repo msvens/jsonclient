@@ -1,11 +1,14 @@
+val repoName = "jsonclient"
+val homePage = "http://www.mellowtech.org/"
+
 organizationName := "Mellowtech"
-organizationHomepage := Some(url("http://www.mellowtech.org/"))
+organizationHomepage := Some(url(homePage))
 
 scmInfo := Some(
   ScmInfo(
-    url("https://github.com/msvens/jsonclient.git"),
-    "scm:git:git@github.com:msvens/jsonclient.git",
-    "scm:git:git@github.com:msvens/jsonclient.git"
+    url(s"https://github.com/msvens/${repoName}.git"),
+    s"scm:git:git@github.com:msvens/${repoName}.git",
+    s"scm:git:git@github.com:msvens/${repoName}.git"
   )
 )
 
@@ -14,7 +17,7 @@ developers := List(
     id    = "msvens",
     name  = "Martin Svensson",
     email = "msvens@gmail.com",
-    url   = url("http://www.mellowtech.org/")
+    url   = url(homePage)
   )
 )
 
@@ -33,31 +36,4 @@ publishTo := {
 publishMavenStyle := true
 
 // Your profile name of the sonatype account. The default is the same with the organization value
-sonatypeProfileName := "org.mellowtech"
-
-
-// To sync with Maven central, you need to supply the following information:
-/*
-pomExtra in Global := {
-  <url>https://github.com/msvens/jsonclient</url>
-    <scm>
-      <developerConnection>scm:git:git@github.com:msvens/jsonclient.git</developerConnection>
-      <connection>scm:git:git@github.com:msvens/jsonclient.git</connection>
-      <url>git@github.com:msvens/jsonclient.git</url>
-    </scm>
-    <licenses>
-      <license>
-        <name>The Apache License, Version 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
-    <developers>
-      <developer>
-        <name>Martin Svensson</name>
-        <email>msvens@gmail.com</email>
-        <organization>Mellowtech</organization>
-        <organizationUrl>http://www.mellowtech.org/</organizationUrl>
-      </developer>
-    </developers>
-}
-*/
+//sonatypeProfileName := "org.mellowtech"
