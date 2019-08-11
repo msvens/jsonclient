@@ -9,13 +9,22 @@ import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.{ActorMaterializer, Materializer}
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-case class JsonResponse(key: String, value: String)
-case class Responses(responses: Seq[JsonResponse])
 
-class eJsonTestServer(port: Int = 9060)(implicit actorSystem: ActorSystem, materializer: ActorMaterializer) {
+case class JsonKeyValue(key: String, value: String)
+case class Responses(responses: Seq[JsonKeyValue])
+
+object JsonCodecs {
+  implicit val codec: JsonValueCodec[JsonKeyValue] = JsonCodecMaker.make[JsonKeyValue](CodecMakerConfig())
+  implicit val responsesCodec: JsonValueCodec[Responses] = JsonCodecMaker.make[Responses](CodecMakerConfig())
+
+}
+
+class JsonExampleServer(port: Int = 9060)(implicit actorSystem: ActorSystem, materializer: ActorMaterializer) {
 
   implicit val executor: ExecutionContext = actorSystem.dispatcher
   implicit val log: LoggingAdapter = Logging(actorSystem, getClass)
@@ -37,17 +46,16 @@ class eJsonTestServer(port: Int = 9060)(implicit actorSystem: ActorSystem, mater
     import com.github.plokhotnyuk.jsoniter_scala.core._
     import com.github.plokhotnyuk.jsoniter_scala.macros._
 
-    implicit val codec: JsonValueCodec[JsonResponse] = JsonCodecMaker.make[JsonResponse](CodecMakerConfig())
-    implicit val responsesCodec: JsonValueCodec[Responses] = JsonCodecMaker.make[Responses](CodecMakerConfig())
+    import JsonCodecs._
 
     pathPrefix("json") {
       pathEndOrSingleSlash {
         get {
-          val resp = responses.map[JsonResponse](kv => {JsonResponse(kv._1, kv._2)}).toSeq
+          val resp = responses.map[JsonKeyValue](kv => {JsonKeyValue(kv._1, kv._2)}).toSeq
           complete(Responses(resp))
         } ~
         post {
-          entity(as[JsonResponse]){e => {
+          entity(as[JsonKeyValue]){e => {
             responses += ((e.key, e.value))
             complete(e)
           }}

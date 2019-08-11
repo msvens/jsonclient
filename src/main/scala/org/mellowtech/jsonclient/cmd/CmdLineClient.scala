@@ -2,7 +2,7 @@ package org.mellowtech.jsonclient.cmd
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.mellowtech.jsonclient.JsonClient
+import org.mellowtech.jsonclient.{JsonClient, JsonResponse}
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
 
@@ -24,6 +24,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments){
   val post = new Subcommand("post") {
     val key = opt[String]("key")
     val value = opt[String]("value")
+    val url = trailArg[String](required = true)
   }
 
   val exit = new Subcommand("exit"){}
@@ -58,7 +59,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments){
 class Tool(jc: JsonClient){
 
   import scala.concurrent.duration._
-
+  import JsonCodecs._
 
   def exec(conf: Conf): Unit = {
     conf.subcommand match {
@@ -75,6 +76,12 @@ class Tool(jc: JsonClient){
               Console.println("to be implemented")
             }
           }
+        }
+        case conf.post => {
+          val k = conf.post.key()
+          val v = conf.post.value()
+          val jr = JsonKeyValue(k,v)
+          val r: JsonResponse[JsonKeyValue] = Await.result(jc.post(null,jr), 10.seconds)
         }
       }
       case _ => conf.printHelp()
