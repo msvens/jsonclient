@@ -2,21 +2,17 @@ import Dependencies._
 import sbt.Keys._
 import sbt._
 
-lazy val buildSettings = Seq(
-  version := "0.5.0",
-  organization := "org.mellowtech",
-  scalaVersion := "2.12.8",
-  publishArtifact in Test := false,
-  parallelExecution in Test := false,
-  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/site/test-reports")
-)
-
+ThisBuild / version := "0.5.1"
+ThisBuild / organization := "org.mellowtech"
+ThisBuild / scalaVersion := "2.13.0"
+ThisBuild / Test / publishArtifact := false
+ThisBuild / Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/site/test-reports")
 
 //Single Project Config
 lazy val root = (project in file(".")).
-  settings(buildSettings: _*).
   settings(
     name := "jsonclient",
+    Test / parallelExecution := false,
     libraryDependencies ++= testDeps,
     libraryDependencies += scallop,
     libraryDependencies ++= akkaDeps
