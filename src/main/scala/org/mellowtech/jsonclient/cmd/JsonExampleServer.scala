@@ -29,7 +29,8 @@ class JsonExampleServer(port: Int = 9060)(implicit actorSystem: ActorSystem, mat
   implicit val executor: ExecutionContext = actorSystem.dispatcher
   implicit val log: LoggingAdapter = Logging(actorSystem, getClass)
 
-  var responses: Map[String, String] = Map()
+  //var responses: Seq[String, String] = Map()
+  var responses: Seq[JsonKeyValue] = Seq()
 
   val binding: Future[ServerBinding] = {
     Http().bindAndHandle(route, "0.0.0.0", port)
@@ -43,20 +44,18 @@ class JsonExampleServer(port: Int = 9060)(implicit actorSystem: ActorSystem, mat
   def jsonRoutes(implicit m: Materializer): Route = {
     import Directives._
     import de.heikoseeberger.akkahttpjsoniterscala.JsoniterScalaSupport._
-    import com.github.plokhotnyuk.jsoniter_scala.core._
-    import com.github.plokhotnyuk.jsoniter_scala.macros._
 
     import JsonCodecs._
 
     pathPrefix("json") {
       pathEndOrSingleSlash {
         get {
-          val resp = responses.map[JsonKeyValue](kv => {JsonKeyValue(kv._1, kv._2)}).toSeq
-          complete(Responses(resp))
+          //val resp = responses.map[JsonKeyValue](kv => {JsonKeyValue(kv._1, kv._2)}).toSeq
+          complete(Responses(responses))
         } ~
         post {
           entity(as[JsonKeyValue]){e => {
-            responses += ((e.key, e.value))
+            responses = responses :+ e
             complete(e)
           }}
         }
